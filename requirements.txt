@@ -1,7 +1,0 @@
-Flask==3.0.3
-Flask-Cors==4.0.0
-PyJWT==2.8.0
-paho-mqtt==1.6.1
-influxdb-client==1.41.0
-mysql-connector-python==8.4.0
-requests==2.32.3
