@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pengaturan Otomasi - RAS IoT</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        body { background-color: #f8f9fa; }
+        .card-custom { border-radius: 15px; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .nav-link:hover { background-color: rgba(255,255,255,0.1); border-radius: 8px; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-dark bg-dark sticky-top mb-4 shadow-sm" style="z-index: 1030;">
+    <div class="container-fluid px-3">
+        <div class="d-flex align-items-center">
+            <button class="btn text-white me-2 border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" style="font-size: 1.5rem; line-height: 1;">
+                ☰
+            </button>
+            <span class="navbar-brand mb-0 h1 d-none d-sm-inline">Threshold Settings</span>
+        </div>
+        <div class="d-flex text-white align-items-center gap-2">
+            
+            <select id="pilihKolam" class="form-select form-select-sm fw-bold" style="max-width: 250px;" onchange="muatDataHalaman()">
+                <option value="" disabled selected>Memuat Kolam...</option>
+            </select>
+            
+            <span class="d-none d-md-inline fw-bold ms-2" id="teksSapaan">Halo, User!</span>
+        </div>
+    </div>
+</nav>
+
+<div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="sidebarMenu">
+    <div class="offcanvas-header border-bottom border-secondary">
+        <h5 class="offcanvas-title fw-bold">Menu Utama</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body d-flex flex-column">
+        <ul class="nav flex-column mb-auto mt-2">
+            <li class="nav-item mb-2">
+                <a href="dashboard.html" class="nav-link text-white fs-5">Dashboard</a>
+            </li>
+            <li class="nav-item mb-2">
+                <a href="otomasi.html" class="nav-link text-white fs-5">Threshold Settings</a>
+            </li>
+            <hr class="border-secondary">
+            <li class="nav-item mb-2">
+                <a href="#" class="nav-link text-white fw-bold fs-5" data-bs-toggle="modal" data-bs-target="#modalTambahAlat" data-bs-dismiss="offcanvas">Tambah Alat Baru</a>
+            </li>
+            <li class="nav-item mb-2">
+                <a href="#" class="nav-link text-white fw-bold fs-5" data-bs-toggle="modal" data-bs-target="#modalManajemenAlat" data-bs-dismiss="offcanvas">Manajemen Alat</a>
+            </li>
+            <li class="nav-item mb-2">
+                <a href="#" class="nav-link text-white fw-bold fs-5" data-bs-toggle="modal" data-bs-target="#modalTelegram" data-bs-dismiss="offcanvas">Pengaturan Telegram</a>
+            </li>
+        </ul>
+        <hr class="border-secondary">
+        <a href="#" onclick="logoutAplikasi()" class="nav-link text-danger fw-bold fs-5">Logout</a>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row">
+        
+        <div class="col-lg-4 mb-4">
+            <div class="card card-custom p-4 bg-white sticky-top" style="top: 85px; z-index: 1;">
+                <h5 class="mb-4 text-dark fw-bold">Buat Aturan Baru</h5>
+                <form id="formAturan">
+                    
+                    <div class="p-3 mb-3 border rounded bg-light">
+                        <h6 class="fw-bold text-dark">1. Pilih Pemicu</h6>
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold text-muted">Alat Pembaca (Pemicu)</label>
+                            <select class="form-select border-secondary" id="inputTriggerDevice" required>
+                                <option value="" disabled selected>Memuat alat...</option>
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold text-muted">Mendeteksi Sensor</label>
+                            <select class="form-select border-secondary" id="inputSensor" required>
+                                <option value="" disabled selected>Pilih Alat Pembaca Dulu</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="p-3 mb-3 border rounded bg-light">
+                        <h6 class="fw-bold text-dark">2. Batasan Logika</h6>
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold text-muted" id="labelJenisBatas">Melewati Batas</label>
+                            <select class="form-select border-secondary" id="inputJenis" required>
+                                <option value="atas">Naik Lebih Dari ( > )</option>
+                                <option value="bawah">Turun Kurang Dari ( < )</option>
+                            </select>
+                        </div>
+                        <div class="mb-2" id="wadahInputNilai">
+                            <label class="form-label small fw-bold text-muted">Di Angka</label>
+                            <input type="number" step="0.01" class="form-control border-secondary" id="inputNilai" required placeholder="Contoh: 30.5">
+                        </div>
+                    </div>
+
+                    <div class="p-3 mb-4 border rounded bg-light">
+                        <h6 class="fw-bold text-dark">3. Tindakan</h6>
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold text-muted">Alat yang Merespons</label>
+                            <select class="form-select border-secondary" id="inputTargetDevice">
+                                <option value="">-- HANYA KIRIM NOTIFIKASI --</option>
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold text-muted">Pilih Relay Target</label>
+                            <select class="form-select border-secondary" id="inputRelay">
+                                <option value="">-- Tidak Ada --</option>
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold text-muted">Tindakan Eksekusi (Aksi)</label>
+                            <select class="form-select border-secondary fw-bold" id="inputPerintah">
+                                <option value="ON" class="text-primary">NYALAKAN (ON)</option>
+                                <option value="OFF" class="text-danger">MATIKAN (OFF)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-dark w-100 fw-bold py-2">SIMPAN ATURAN</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card card-custom p-4 bg-white">
+                <h5 class="mb-4 fw-bold">Daftar Aturan Otomasi Kolam</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Sensor Pemicu</th>
+                                <th>Syarat</th>
+                                <th>Batas</th>
+                                <th>Tindakan (Relay)</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelAturan">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="modal fade" id="modalTambahAlat" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold">Daftarkan Alat Baru</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formTambahAlat">
+        <div class="mb-3">
+            <label class="form-label fw-bold">Chip ID (Device ID)</label>
+            <input type="text" class="form-control" id="inputDeviceId" required placeholder="Contoh: B0ED730FF0A4">
+        </div>
+        
+        <div class="mb-4">
+            <label class="form-label fw-bold">Pilih Lokasi Kolam</label>
+            <select class="form-select" id="selectKolam" onchange="toggleInputKolam()">
+                <option value="new">+ Tambah Kolam Baru</option>
+            </select>
+            <input type="text" class="form-control mt-2" id="inputNamaKolamBaru" placeholder="Ketik Nama Kolam Baru">
+        </div>
+        
+        <button type="submit" class="btn btn-primary w-100 fw-bold">SIMPAN ALAT</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalManajemenAlat" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title fw-bold">Manajemen Alat (Device)</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="table-responsive">
+              <table class="table table-hover align-middle">
+                  <thead class="table-light">
+                      <tr>
+                          <th>Chip ID (Device)</th>
+                          <th>Lokasi Kolam Saat Ini</th>
+                          <th>Aksi</th>
+                      </tr>
+                  </thead>
+                  <tbody id="tabelManajemenAlat">
+                      <tr><td colspan="3" class="text-center text-muted">Memuat data alat...</td></tr>
+                  </tbody>
+              </table>
+          </div>
+        </div>
+      </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalTelegram" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold">Konfigurasi Bot Telegram</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formTelegramId">
+          <div class="mb-3">
+            <label class="form-label fw-bold">Telegram Chat ID Anda</label>
+            <input type="text" class="form-control text-center fw-bold fs-5" id="inputTelegramChatId" placeholder="Contoh: 6995521801">
+            <div class="form-text mt-2">
+                1. Cari bot <a href="https://t.me/ras_iot_alarm_bot" target="_blank" class="fw-bold text-decoration-none">@ras_iot_alarm_bot</a> lalu klik <b>START</b>.<br>
+                2. Cari bot <a href="https://t.me/userinfobot" target="_blank" class="fw-bold text-decoration-none">@userinfobot</a> untuk mendapatkan nomor ID unik Anda.
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary w-100 text-white fw-bold">SIMPAN KONFIGURASI</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+    // --- KONFIGURASI API & KEAMANAN TOKEN ---
+    const API_BASE_URL = 'http://172.19.127.91:5000';
+    const TOKEN = localStorage.getItem('ras_token');
+
+    if (!TOKEN) { window.location.href = 'login.html'; }
+
+    const authHeaders = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + TOKEN
+    };
+
+    // --- INISIALISASI HALAMAN ---
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('teksSapaan').innerText = 'Halo, ' + (localStorage.getItem('ras_user_nama') || 'User') + '!';
+        document.getElementById('inputTelegramChatId').value = localStorage.getItem('ras_chat_id') || '';
+        muatDaftarKolam();
+    });
+
+    function logoutAplikasi() {
+        localStorage.removeItem('ras_token');
+        localStorage.removeItem('ras_user_nama');
+        localStorage.removeItem('ras_chat_id');
+        window.location.href = 'login.html';
+    }
+
+    let KOLAM_ID = "";
+    let deviceCapsData = {};
+
+    function muatDaftarKolam() {
+        fetch(`${API_BASE_URL}/api/kolam-list`, { headers: authHeaders })
+        .then(res => res.json())
+        .then(data => {
+            const dropdown = document.getElementById('pilihKolam');
+            dropdown.innerHTML = '';
+            
+            if(data.length === 0) {
+                dropdown.innerHTML = '<option value="" disabled selected>Belum ada Kolam</option>';
+                return;
+            }
+
+            data.forEach(k => {
+                dropdown.innerHTML += `<option value="${k.id_kolam}">${k.nama_kolam}</option>`;
+            });
+
+            const savedKolamId = localStorage.getItem('selectedKolamId');
+            if (savedKolamId) {
+                let optionExists = Array.from(dropdown.options).some(opt => opt.value === savedKolamId);
+                if (optionExists) dropdown.value = savedKolamId;
+            }
+
+            KOLAM_ID = dropdown.value;
+            localStorage.setItem('selectedKolamId', KOLAM_ID);
+            muatDataHalaman();
+        })
+        .catch(err => {
+            if(err.message.includes('401')) logoutAplikasi();
+            console.error("Gagal memuat kolam:", err);
+        });
+    }
+
+    function muatDataHalaman() {
+        KOLAM_ID = document.getElementById('pilihKolam').value;
+        localStorage.setItem('selectedKolamId', KOLAM_ID); 
+        
+        if (!KOLAM_ID) return;
+
+        fetch(`${API_BASE_URL}/api/aturan/${KOLAM_ID}`, { headers: authHeaders })
+        .then(res => res.json())
+        .then(data => {
+            const aturanList = data.aturan;
+            const devicesList = data.devices;
+
+            const tbody = document.getElementById('tabelAturan');
+            tbody.innerHTML = '';
+            
+            if (aturanList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">Belum ada aturan otomasi untuk kolam ini.</td></tr>';
+            } else {
+                aturanList.forEach(aturan => {
+                    let textKondisi = aturan.jenis_batas === 'atas' ? 'Naik >' : 'Turun <';
+                    let textBatas = aturan.nilai_batas;
+                    
+                    if (aturan.sensor === 'air_penuh') {
+                        textKondisi = 'Status Target:';
+                        textBatas = aturan.jenis_batas === 'atas' ? '<span class="text-primary">PENUH</span>' : '<span class="text-danger">SURUT</span>';
+                    }
+                    
+                    let textAksi = '<span class="badge bg-secondary">Kirim Notifikasi Telegram Saja</span>';
+                    if (aturan.target_device_id && aturan.target_relay) {
+                        let perintah = aturan.perintah || 'ON'; 
+                        let bgClass = perintah === 'ON' ? 'bg-primary' : 'bg-danger';
+                        let labelAksi = perintah === 'ON' ? 'Nyalakan' : 'Matikan';
+                        
+                        textAksi = `<span class="badge ${bgClass}">${labelAksi} ${aturan.target_relay.toUpperCase()} (Alat ${aturan.target_device_id})</span>`;
+                    }
+
+                    let tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="small"><b>${aturan.sensor.toUpperCase()}</b><br><span class="text-muted">di Alat ${aturan.trigger_device_id}</span></td>
+                        <td><span class="badge bg-secondary">${textKondisi}</span></td>
+                        <td class="fw-bold text-dark fs-5">${textBatas}</td>
+                        <td>${textAksi}</td>
+                        <td><button class="btn btn-sm btn-outline-danger fw-bold" onclick="hapusAturan(${aturan.id_aturan})">Hapus</button></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            const triggerSelect = document.getElementById('inputTriggerDevice');
+            const targetSelect = document.getElementById('inputTargetDevice');
+            
+            triggerSelect.innerHTML = '<option value="" disabled selected>Pilih Alat Pemicu...</option>';
+            targetSelect.innerHTML = '<option value="">-- HANYA KIRIM NOTIFIKASI --</option>';
+            
+            document.getElementById('inputSensor').innerHTML = '<option value="" disabled selected>Pilih Alat Pembaca Dulu</option>';
+            document.getElementById('inputRelay').innerHTML = '<option value="">-- Tidak Ada --</option>';
+
+            deviceCapsData = {}; 
+
+            devicesList.forEach(dev => {
+                let caps = { sensors: [], relays: [] };
+                if (dev.capabilities) {
+                    try {
+                        caps = (typeof dev.capabilities === 'string') ? JSON.parse(dev.capabilities) : dev.capabilities;
+                    } catch(e) {}
+                }
+                deviceCapsData[dev.id_device] = caps;
+
+                triggerSelect.innerHTML += `<option value="${dev.id_device}">ID: ${dev.id_device}</option>`;
+                targetSelect.innerHTML += `<option value="${dev.id_device}">ID: ${dev.id_device}</option>`;
+            });
+        })
+        .catch(err => console.error("Gagal menarik data aturan:", err));
+    }
+
+    document.getElementById('inputTriggerDevice').addEventListener('change', function() {
+        const devId = this.value;
+        const sensorSelect = document.getElementById('inputSensor');
+        sensorSelect.innerHTML = '';
+        
+        const caps = deviceCapsData[devId];
+        if (!caps || !caps.sensors || caps.sensors.length === 0) {
+            sensorSelect.innerHTML = '<option value="" disabled selected>Belum ada data sensor tercatat</option>';
+            return;
+        }
+
+        const namaSensor = {
+            'suhu': 'Suhu Air (°C)',
+            'ph': 'pH Air',
+            'tds_ppm': 'TDS (ppm)',
+            'do_mgL': 'Oksigen / DO (mg/L)',
+            'air_penuh': 'Status Air (Float Switch)'
+        };
+
+        caps.sensors.forEach(s => {
+            let label = namaSensor[s] || s.toUpperCase();
+            sensorSelect.innerHTML += `<option value="${s}">${label}</option>`;
+        });
+        
+        sensorSelect.dispatchEvent(new Event('change'));
+    });
+
+    document.getElementById('inputSensor').addEventListener('change', function() {
+        const sensorVal = this.value;
+        const wadahNilai = document.getElementById('wadahInputNilai');
+        const inputNilai = document.getElementById('inputNilai');
+        const inputJenis = document.getElementById('inputJenis');
+        const labelJenis = document.getElementById('labelJenisBatas');
+
+        if (sensorVal === 'air_penuh') {
+            labelJenis.innerText = "Kondisi Pelampung";
+            inputJenis.innerHTML = `
+                <option value="atas">Air Kolam Penuh</option>
+                <option value="bawah">Air Kolam Kurang</option>
+            `;
+            wadahNilai.style.display = 'none';
+            inputNilai.removeAttribute('required');
+            inputNilai.value = '0.5'; 
+        } else {
+            labelJenis.innerText = "Melewati Batas";
+            inputJenis.innerHTML = `
+                <option value="atas">Naik Lebih Dari ( > )</option>
+                <option value="bawah">Turun Kurang Dari ( < )</option>
+            `;
+            wadahNilai.style.display = 'block';
+            inputNilai.setAttribute('required', 'true');
+            inputNilai.value = ''; 
+        }
+    });
+
+    document.getElementById('inputTargetDevice').addEventListener('change', function() {
+        const devId = this.value;
+        const relaySelect = document.getElementById('inputRelay');
+        
+        if (!devId) {
+            relaySelect.innerHTML = '<option value="">-- Tidak Ada --</option>';
+            return;
+        }
+
+        relaySelect.innerHTML = '';
+        const caps = deviceCapsData[devId];
+        
+        if (!caps || !caps.relays || caps.relays.length === 0) {
+            relaySelect.innerHTML = '<option value="" disabled selected>Belum ada data relay tercatat</option>';
+            return;
+        }
+
+        relaySelect.innerHTML += '<option value="">-- Pilih Relay --</option>';
+        caps.relays.forEach(r => {
+            let numMatch = r.match(/\d+/);
+            if(numMatch) {
+                let num = numMatch[0];
+                let namaKustom = (caps.relay_names && caps.relay_names[r] && caps.relay_names[r] !== "") 
+                                 ? caps.relay_names[r] 
+                                 : `Relay ${num}`;
+                                 
+                relaySelect.innerHTML += `<option value="input${num}">${namaKustom} (R${num})</option>`;
+            }
+        });
+    });
+
+    document.getElementById('formAturan').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        if (!KOLAM_ID) return alert("Pilih kolam terlebih dahulu!");
+
+        const triggerVal = document.getElementById('inputTriggerDevice').value;
+        const targetVal = document.getElementById('inputTargetDevice').value;
+        const relayVal = document.getElementById('inputRelay').value;
+        const perintahVal = document.getElementById('inputPerintah').value; 
+
+        if (!triggerVal) return alert("Harap pilih Alat Pembaca Sensor!");
+        if (targetVal !== "" && relayVal === "") return alert("Pilih Perangkat (Relay) yang akan dikontrol!");
+        if (targetVal === "" && relayVal !== "") return alert("Pilih Alat Merespons untuk relay tersebut!");
+
+        const payload = {
+            id_kolam: KOLAM_ID,
+            trigger_device_id: triggerVal,
+            sensor: document.getElementById('inputSensor').value,
+            jenis_batas: document.getElementById('inputJenis').value,
+            nilai_batas: document.getElementById('inputNilai').value,
+            target_device_id: targetVal || null,
+            target_relay: relayVal || null,
+            perintah: perintahVal
+        };
+
+        fetch(`${API_BASE_URL}/api/aturan`, {
+            method: 'POST',
+            headers: authHeaders,
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'sukses') {
+                document.getElementById('inputNilai').value = ''; 
+                muatDataHalaman(); 
+            } else {
+                alert(data.pesan);
+            }
+        })
+        .catch(err => alert("Terjadi kesalahan saat menyimpan aturan."));
+    });
+
+    function hapusAturan(id) {
+        if(confirm("Konfirmasi: Apakah Anda yakin ingin menghapus aturan otomasi ini?")) {
+            fetch(`${API_BASE_URL}/api/aturan/` + id, { 
+                method: 'DELETE',
+                headers: authHeaders 
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'sukses') muatDataHalaman();
+                else alert(data.pesan);
+            })
+            .catch(err => alert("Gagal menghubungi server."));
+        }
+    }
+
+    // --- MANAJEMEN ALAT ---
+    document.getElementById('modalTambahAlat').addEventListener('shown.bs.modal', function () {
+        fetch(`${API_BASE_URL}/api/kolam-list`, { headers: authHeaders })
+        .then(res => res.json())
+        .then(kolamList => {
+            const select = document.getElementById('selectKolam');
+            select.innerHTML = '<option value="new">+ Tambah Kolam Baru</option>';
+            kolamList.forEach(k => {
+                select.innerHTML += `<option value="${k.id_kolam}">${k.nama_kolam}</option>`;
+            });
+        });
+    });
+
+    function toggleInputKolam() {
+        const select = document.getElementById('selectKolam');
+        const input = document.getElementById('inputNamaKolamBaru');
+        input.style.display = (select.value === 'new') ? 'block' : 'none';
+        if(select.value !== 'new') input.value = ""; 
+    }
+
+    document.getElementById('formTambahAlat').addEventListener('submit', function(e) {
+        e.preventDefault(); 
+        const inputId = document.getElementById('inputDeviceId').value.trim().toUpperCase();
+        let targetKolamId = document.getElementById('selectKolam').value;
+        let namaKolamBaru = document.getElementById('inputNamaKolamBaru').value.trim();
+
+        fetch(`${API_BASE_URL}/api/tambah-alat`, {
+            method: 'POST',
+            headers: authHeaders,
+            body: JSON.stringify({ 
+                device_id: inputId, 
+                id_kolam: targetKolamId,
+                nama_kolam_baru: namaKolamBaru 
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'sukses') {
+                alert(data.pesan);
+                location.reload(); 
+            } else {
+                alert(data.pesan); 
+            }
+        });
+    });
+
+    document.getElementById('modalManajemenAlat').addEventListener('shown.bs.modal', function () {
+        const tbody = document.getElementById('tabelManajemenAlat');
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Memuat data alat...</td></tr>';
+        
+        Promise.all([
+            fetch(`${API_BASE_URL}/api/user-devices`, { headers: authHeaders }).then(res => res.json()),
+            fetch(`${API_BASE_URL}/api/kolam-list`, { headers: authHeaders }).then(res => res.json())
+        ])
+        .then(([devices, kolams]) => {
+            tbody.innerHTML = '';
+            if(devices.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Belum ada alat yang terdaftar.</td></tr>';
+                return;
+            }
+            
+            devices.forEach(dev => {
+                let options = '';
+                kolams.forEach(k => {
+                    let selected = (k.id_kolam === dev.id_kolam) ? 'selected' : '';
+                    options += `<option value="${k.id_kolam}" ${selected}>${k.nama_kolam}</option>`;
+                });
+                
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="fw-bold text-dark">${dev.id_device}</td>
+                        <td>
+                            <select class="form-select form-select-sm border-secondary" id="pindah_${dev.id_device}">
+                                ${options}
+                            </select>
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <button class="btn btn-sm btn-primary fw-bold flex-fill" onclick="simpanPindahAlat('${dev.id_device}')">Simpan</button>
+                                <button class="btn btn-sm btn-outline-danger fw-bold flex-fill" onclick="hapusAlatPermanen('${dev.id_device}')">Hapus</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+        });
+    });
+
+    function simpanPindahAlat(deviceId) {
+        const idKolamBaru = document.getElementById('pindah_' + deviceId).value;
+        fetch(`${API_BASE_URL}/api/pindah-alat`, {
+            method: 'POST',
+            headers: authHeaders,
+            body: JSON.stringify({ device_id: deviceId, id_kolam_baru: idKolamBaru })
+        })
+        .then(res => res.json())
+        .then(data => {
+            alert(data.pesan);
+            if(data.status === 'sukses') location.reload();
+        });
+    }
+
+    function hapusAlatPermanen(deviceId) {
+        if(confirm(`Konfirmasi: Apakah Anda yakin ingin menghapus Alat [${deviceId}] secara permanen dari sistem?`)) {
+            fetch(`${API_BASE_URL}/api/hapus-alat/` + deviceId, { 
+                method: 'DELETE',
+                headers: authHeaders 
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.pesan);
+                if(data.status === 'sukses') location.reload();
+            });
+        }
+    }
+
+    document.getElementById('formTelegramId').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const chatIdValue = document.getElementById('inputTelegramChatId').value.trim();
+
+        fetch(`${API_BASE_URL}/api/user/telegram`, {
+            method: 'POST',
+            headers: authHeaders,
+            body: JSON.stringify({ telegram_chat_id: chatIdValue })
+        })
+        .then(res => res.json())
+        .then(data => {
+            alert(data.pesan);
+            if(data.status === 'sukses') {
+                localStorage.setItem('ras_chat_id', chatIdValue);
+                location.reload();
+            }
+        });
+    });
+</script>
+
+</body>
+</html>

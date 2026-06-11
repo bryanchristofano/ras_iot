@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - RAS IoT</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        body { background-color: #f8f9fa; }
+        .sensor-card { border-radius: 15px; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: 0.3s; }
+        .sensor-card:hover { transform: translateY(-5px); }
+        .btn-relay { width: 100%; font-weight: bold; }
+        .dinamis-hide { display: none; } 
+        .nav-link:hover { background-color: rgba(255,255,255,0.1); border-radius: 8px; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-dark bg-dark sticky-top mb-4 shadow-sm" style="z-index: 1030;">    
+    <div class="container-fluid px-3">
+        <div class="d-flex align-items-center">
+            <button class="btn text-white me-2 border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" style="font-size: 1.5rem; line-height: 1;">
+                ☰
+            </button>
+            <span class="navbar-brand mb-0 h1 d-none d-sm-inline">Dashboard</span>
+        </div>
+        
+        <div class="d-flex text-white align-items-center gap-2">
+            <select id="pilihKolam" class="form-select form-select-sm fw-bold" style="max-width: 200px;" onchange="gantiKolam()">
+                <option value="" disabled selected>Memuat Kolam...</option>
+            </select>
+
+            <select id="pilihWaktu" class="form-select form-select-sm fw-bold" style="max-width: 150px;" onchange="gantiWaktu()">
+                <option value="15m">15 Menit</option>
+                <option value="1h">1 Jam</option>
+                <option value="6h">6 Jam</option>
+                <option value="24h">24 Jam</option>
+                <option value="7d">7 Hari</option>
+                <option value="custom" class="fw-bold">Kustom...</option>
+            </select>
+            
+            <span class="d-none d-md-inline fw-bold ms-2" id="teksSapaan">Halo, User!</span>
+        </div>
+    </div>
+</nav>
+
+<div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="sidebarMenu">
+    <div class="offcanvas-header border-bottom border-secondary">
+        <h5 class="offcanvas-title fw-bold">Menu Utama</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body d-flex flex-column">
+        <ul class="nav flex-column mb-auto mt-2">
+            <li class="nav-item mb-2">
+                <a href="dashboard.html" class="nav-link text-white fs-5">Dashboard</a>
+            </li>
+            <li class="nav-item mb-2">
+                <a href="otomasi.html" class="nav-link text-white fs-5">Threshold Settings</a>
+            </li>
+            <hr class="border-secondary">
+            <li class="nav-item mb-2">
+                <a href="#" class="nav-link text-white fw-bold fs-5" data-bs-toggle="modal" data-bs-target="#modalTambahAlat" data-bs-dismiss="offcanvas">Tambah Alat Baru</a>
+            </li>
+            <li class="nav-item mb-2">
+                <a href="#" class="nav-link text-white fw-bold fs-5" data-bs-toggle="modal" data-bs-target="#modalManajemenAlat" data-bs-dismiss="offcanvas">Manajemen Alat</a>
+            </li>
+            <li class="nav-item mb-2">
+                <a href="#" class="nav-link text-white fw-bold fs-5" data-bs-toggle="modal" data-bs-target="#modalTelegram" data-bs-dismiss="offcanvas">Pengaturan Telegram</a>
+            </li>
+        </ul>
+        <hr class="border-secondary">
+        <a href="#" onclick="logoutAplikasi()" class="nav-link text-danger fw-bold fs-5">Logout</a>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row text-center mb-4" id="wadah-sensor">
+        <div class="col-md-3 mb-3 dinamis-hide" id="card-suhu">
+            <div class="card sensor-card p-3 bg-white">
+                <h6 class="text-muted">Suhu Air</h6>
+                <h2 id="val-suhu">--</h2>
+                <small class="text-muted">°Celsius</small>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3 dinamis-hide" id="card-ph">
+            <div class="card sensor-card p-3 bg-white">
+                <h6 class="text-muted">pH Air</h6>
+                <h2 id="val-ph">--</h2>
+                <small class="text-muted">Scale 0-14</small>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3 dinamis-hide" id="card-tds">
+            <div class="card sensor-card p-3 bg-white">
+                <h6 class="text-muted">TDS</h6>
+                <h2 id="val-tds">--</h2>
+                <small class="text-muted">PPM</small>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3 dinamis-hide" id="card-do">
+            <div class="card sensor-card p-3 bg-white">
+                <h6 class="text-muted">Oksigen (DO)</h6>
+                <h2 id="val-do">--</h2>
+                <small class="text-muted">mg/L</small>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3 dinamis-hide" id="card-float">
+            <div class="card sensor-card p-3 bg-white">
+                <h6 class="text-muted">Status Tangki Air</h6>
+                <h2 id="val-float">--</h2>
+                <small class="text-muted">Float Switch</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="card sensor-card p-4 bg-white mb-4 dinamis-hide" id="chart-container-suhu">
+                <h5 class="mb-3 text-dark">Tren Suhu Air (°C)</h5>
+                <canvas id="chart-suhu"></canvas>
+            </div>
+            <div class="card sensor-card p-4 bg-white mb-4 dinamis-hide" id="chart-container-ph">
+                <h5 class="mb-3 text-dark">Tren pH Air</h5>
+                <canvas id="chart-ph"></canvas>
+            </div>
+            <div class="card sensor-card p-4 bg-white mb-4 dinamis-hide" id="chart-container-tds">
+                <h5 class="mb-3 text-dark">Tren TDS (ppm)</h5>
+                <canvas id="chart-tds"></canvas>
+            </div>
+            <div class="card sensor-card p-4 bg-white mb-4 dinamis-hide" id="chart-container-do">
+                <h5 class="mb-3 text-dark">Tren Oksigen (DO - mg/L)</h5>
+                <canvas id="chart-do"></canvas>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card sensor-card p-4 bg-white sticky-top" style="top: 80px;">
+                <h5 class="mb-3 border-bottom pb-2">Kontrol Manual Relay</h5>
+                <div id="wadah-kontrol-relay">
+                    <p class="small text-muted mt-3">Mencari alat di kolam ini...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalTambahAlat" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold">Daftarkan Alat Baru</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formTambahAlat">
+        <div class="mb-3">
+            <label class="form-label fw-bold">Chip ID (Device ID)</label>
+            <input type="text" class="form-control" id="inputDeviceId" required placeholder="Contoh: B0ED730FF0A4">
+        </div>
+        
+        <div class="mb-4">
+            <label class="form-label fw-bold">Pilih Lokasi Kolam</label>
+            <select class="form-select" id="selectKolam" onchange="toggleInputKolam()">
+                <option value="new">+ Tambah Kolam Baru</option>
+            </select>
+            <input type="text" class="form-control mt-2" id="inputNamaKolamBaru" placeholder="Ketik Nama Kolam Baru">
+        </div>
+        
+        <button type="submit" class="btn btn-primary w-100 fw-bold">SIMPAN ALAT</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalManajemenAlat" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title fw-bold">Manajemen Alat (Device)</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="table-responsive">
+              <table class="table table-hover align-middle">
+                  <thead class="table-light">
+                      <tr>
+                          <th>Chip ID (Device)</th>
+                          <th>Lokasi Kolam Saat Ini</th>
+                          <th>Aksi</th>
+                      </tr>
+                  </thead>
+                  <tbody id="tabelManajemenAlat">
+                      <tr><td colspan="3" class="text-center text-muted">Memuat data alat...</td></tr>
+                  </tbody>
+              </table>
+          </div>
+        </div>
+      </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalCustomWaktu" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title">Pilih Rentang Waktu</h5>
+          <button type="button" class="btn-close btn-close-white" onclick="batalCustomWaktu()"></button>
+        </div>
+        <div class="modal-body">
+            <div class="mb-3">
+                <label class="form-label fw-bold">Mulai dari:</label>
+                <input type="datetime-local" class="form-control" id="inputWaktuMulai">
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Sampai dengan:</label>
+                <input type="datetime-local" class="form-control" id="inputWaktuSelesai">
+            </div>
+            <button class="btn btn-primary w-100 fw-bold" onclick="terapkanCustomWaktu()">Terapkan Filter</button>
+        </div>
+      </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalTelegram" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">Konfigurasi Bot Telegram</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formTelegramId">
+          <div class="mb-3">
+            <label class="form-label fw-bold">Telegram Chat ID</label>
+            <input type="text" class="form-control text-center fw-bold fs-5" id="inputTelegramChatId" placeholder="Contoh: 6995521801">
+            <div class="form-text mt-2">
+                1. Cari bot <a href="https://t.me/userinfobot" target="_blank" class="fw-bold text-decoration-none">@userinfobot</a> untuk mendapatkan nomor ID unik Anda.<br>
+                2. Cari bot <a href="https://t.me/ras_iot_alarm_bot"  target="_blank" class="fw-bold text-decoration-none">@ras_iot_alarm_bot</a> lalu klik <b>START</b>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary w-100 text-white fw-bold">SIMPAN KONFIGURASI</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+    // --- KONFIGURASI API & KEAMANAN TOKEN ---
+    const API_BASE_URL = 'http://172.19.127.91:5000';
+    const TOKEN = localStorage.getItem('ras_token');
+
+    // Jika tidak ada token (belum login), tendang kembali ke halaman login
+    if (!TOKEN) {
+        window.location.href = 'login.html';
+    }
+
+    // Header wajib untuk setiap Fetch
+    const authHeaders = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + TOKEN
+    };
+
+    // --- INISIALISASI HALAMAN ---
+    document.addEventListener('DOMContentLoaded', () => {
+        // Render nama dan chat ID dari memori browser
+        document.getElementById('teksSapaan').innerText = 'Halo, ' + (localStorage.getItem('ras_user_nama') || 'User') + '!';
+        document.getElementById('inputTelegramChatId').value = localStorage.getItem('ras_chat_id') || '';
+        
+        // Panggil daftar kolam dari API
+        muatDaftarKolam();
+    });
+
+    function logoutAplikasi() {
+        localStorage.removeItem('ras_token');
+        localStorage.removeItem('ras_user_nama');
+        localStorage.removeItem('ras_chat_id');
+        window.location.href = 'login.html';
+    }
+
+    let KOLAM_ID = "";
+    let TIME_RANGE = localStorage.getItem('selectedTimeRange') || "1h";
+    let refreshIntervalId = null;
+
+    const dropdownWaktu = document.getElementById('pilihWaktu');
+    if (TIME_RANGE && dropdownWaktu) {
+        let optionExists = Array.from(dropdownWaktu.options).some(opt => opt.value === TIME_RANGE);
+        if (optionExists) dropdownWaktu.value = TIME_RANGE;
+    }
+
+    function muatDaftarKolam() {
+        fetch(`${API_BASE_URL}/api/kolam-list`, { headers: authHeaders })
+        .then(res => res.json())
+        .then(data => {
+            const dropdown = document.getElementById('pilihKolam');
+            dropdown.innerHTML = '';
+            
+            if(data.length === 0) {
+                dropdown.innerHTML = '<option value="" disabled selected>Belum ada Kolam</option>';
+                return;
+            }
+
+            data.forEach(k => {
+                dropdown.innerHTML += `<option value="${k.id_kolam}">${k.nama_kolam}</option>`;
+            });
+
+            const savedKolamId = localStorage.getItem('selectedKolamId');
+            if (savedKolamId) {
+                let optionExists = Array.from(dropdown.options).some(opt => opt.value === savedKolamId);
+                if (optionExists) dropdown.value = savedKolamId;
+            }
+
+            KOLAM_ID = dropdown.value;
+            localStorage.setItem('selectedKolamId', KOLAM_ID);
+            jalankanSiklusDashboard();
+        })
+        .catch(err => {
+            if(err.message.includes('401')) logoutAplikasi();
+            console.error("Gagal memuat kolam:", err);
+        });
+    }
+
+    const grafikColors = ['#0d6efd', '#dc3545', '#198754', '#0dcaf0', '#ffc107', '#6f42c1'];
+
+    function bersihkanLayar() {
+        document.getElementById('val-suhu').innerText = "--";
+        document.getElementById('val-ph').innerText = "--";
+        document.getElementById('val-tds').innerText = "--";
+        document.getElementById('val-do').innerText = "--";
+        document.getElementById('val-float').innerText = "--";
+        
+        document.getElementById('wadah-kontrol-relay').innerHTML = '<p class="small text-muted mt-3">Mencari alat...</p>';
+        document.querySelectorAll('.dinamis-hide').forEach(el => el.style.display = 'none');
+        
+        chartSuhu.data.labels = []; chartSuhu.data.datasets = []; chartSuhu.update();
+        chartPH.data.labels = []; chartPH.data.datasets = []; chartPH.update();
+        chartTDS.data.labels = []; chartTDS.data.datasets = []; chartTDS.update();
+        chartDO.data.labels = []; chartDO.data.datasets = []; chartDO.update();
+    }
+
+    function gantiKolam() {
+        KOLAM_ID = document.getElementById('pilihKolam').value;
+        localStorage.setItem('selectedKolamId', KOLAM_ID); 
+        bersihkanLayar(); 
+        jalankanSiklusDashboard();
+    }
+
+    function gantiWaktu() {
+        TIME_RANGE = document.getElementById('pilihWaktu').value;
+        if (TIME_RANGE === 'custom') {
+            const modalCustom = new bootstrap.Modal(document.getElementById('modalCustomWaktu'));
+            modalCustom.show();
+            return; 
+        }
+        localStorage.setItem('selectedTimeRange', TIME_RANGE);
+        bersihkanLayar(); 
+        jalankanSiklusDashboard();
+    }
+
+    function batalCustomWaktu() {
+        const modalEl = document.getElementById('modalCustomWaktu');
+        bootstrap.Modal.getInstance(modalEl).hide();
+        let prevTime = localStorage.getItem('selectedTimeRange') || '1h';
+        if (prevTime === 'custom') prevTime = '1h'; 
+        document.getElementById('pilihWaktu').value = prevTime;
+        TIME_RANGE = prevTime;
+    }
+
+    function terapkanCustomWaktu() {
+        const startRaw = document.getElementById('inputWaktuMulai').value;
+        const stopRaw = document.getElementById('inputWaktuSelesai').value;
+
+        if(!startRaw || !stopRaw) return alert("Anda harus mengisi kedua tanggal!");
+        if(new Date(startRaw) >= new Date(stopRaw)) return alert("Waktu mulai harus lebih dulu dari waktu selesai.");
+
+        const startIso = new Date(startRaw).toISOString();
+        const stopIso = new Date(stopRaw).toISOString();
+
+        TIME_RANGE = 'custom';
+        document.getElementById('pilihWaktu').value = 'custom';
+        localStorage.setItem('selectedTimeRange', 'custom');
+        localStorage.setItem('customStart', startIso);
+        localStorage.setItem('customStop', stopIso);
+
+        const modalEl = document.getElementById('modalCustomWaktu');
+        bootstrap.Modal.getInstance(modalEl).hide();
+
+        bersihkanLayar(); 
+        jalankanSiklusDashboard();
+    }
+
+    function kontrol(deviceId, relay, perintah) {
+        if(!deviceId) return alert("Error: ID Alat tidak ditemukan!");
+        fetch(`${API_BASE_URL}/api/kontrol`, {
+            method: 'POST',
+            headers: authHeaders,
+            body: JSON.stringify({ device_id: deviceId, relay: relay, perintah: perintah })
+        })
+        .then(res => res.json())
+        .then(data => alert("Berhasil: " + data.pesan))
+        .catch(err => alert("Gagal mengirim perintah!"));
+    }
+
+    document.getElementById('modalTambahAlat').addEventListener('shown.bs.modal', function () {
+        fetch(`${API_BASE_URL}/api/kolam-list`, { headers: authHeaders })
+        .then(res => res.json())
+        .then(kolamList => {
+            const select = document.getElementById('selectKolam');
+            select.innerHTML = '<option value="new">+ Tambah Kolam Baru</option>';
+            kolamList.forEach(k => {
+                select.innerHTML += `<option value="${k.id_kolam}">${k.nama_kolam}</option>`;
+            });
+        });
+    });
+
+    function toggleInputKolam() {
+        const select = document.getElementById('selectKolam');
+        const input = document.getElementById('inputNamaKolamBaru');
+        input.style.display = (select.value === 'new') ? 'block' : 'none';
+        if(select.value !== 'new') input.value = ""; 
+    }
+
+    document.getElementById('formTambahAlat').addEventListener('submit', function(e) {
+        e.preventDefault(); 
+        const inputId = document.getElementById('inputDeviceId').value.trim().toUpperCase();
+        
+        let targetKolamId = document.getElementById('selectKolam').value;
+        let namaKolamBaru = document.getElementById('inputNamaKolamBaru').value.trim();
+
+        fetch(`${API_BASE_URL}/api/tambah-alat`, {
+            method: 'POST',
+            headers: authHeaders,
+            body: JSON.stringify({ 
+                device_id: inputId, 
+                id_kolam: targetKolamId,
+                nama_kolam_baru: namaKolamBaru 
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'sukses') {
+                alert(data.pesan);
+                location.reload(); 
+            } else {
+                alert(data.pesan); 
+            }
+        })
+        .catch(err => alert("Terjadi kesalahan server saat menyimpan data."));
+    });
+
+    document.getElementById('modalManajemenAlat').addEventListener('shown.bs.modal', function () {
+        const tbody = document.getElementById('tabelManajemenAlat');
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Memuat data alat...</td></tr>';
+        
+        Promise.all([
+            fetch(`${API_BASE_URL}/api/user-devices`, { headers: authHeaders }).then(res => res.json()),
+            fetch(`${API_BASE_URL}/api/kolam-list`, { headers: authHeaders }).then(res => res.json())
+        ])
+        .then(([devices, kolams]) => {
+            tbody.innerHTML = '';
+            if(devices.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Belum ada alat yang terdaftar.</td></tr>';
+                return;
+            }
+            
+            devices.forEach(dev => {
+                let options = '';
+                kolams.forEach(k => {
+                    let selected = (k.id_kolam === dev.id_kolam) ? 'selected' : '';
+                    options += `<option value="${k.id_kolam}" ${selected}>${k.nama_kolam}</option>`;
+                });
+                
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="fw-bold text-dark">${dev.id_device}</td>
+                        <td>
+                            <select class="form-select form-select-sm border-secondary" id="pindah_${dev.id_device}">
+                                ${options}
+                            </select>
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <button class="btn btn-sm btn-primary fw-bold flex-fill" onclick="simpanPindahAlat('${dev.id_device}')">Simpan</button>
+                                <button class="btn btn-sm btn-outline-danger fw-bold flex-fill" onclick="hapusAlatPermanen('${dev.id_device}')">Hapus</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+        });
+    });
+
+    function simpanPindahAlat(deviceId) {
+        const idKolamBaru = document.getElementById('pindah_' + deviceId).value;
+        fetch(`${API_BASE_URL}/api/pindah-alat`, {
+            method: 'POST',
+            headers: authHeaders,
+            body: JSON.stringify({ device_id: deviceId, id_kolam_baru: idKolamBaru })
+        })
+        .then(res => res.json())
+        .then(data => {
+            alert(data.pesan);
+            if(data.status === 'sukses') location.reload();
+        });
+    }
+
+    function hapusAlatPermanen(deviceId) {
+        if(confirm(`Konfirmasi: Apakah Anda yakin ingin menghapus Alat [${deviceId}] secara permanen dari sistem?`)) {
+            fetch(`${API_BASE_URL}/api/hapus-alat/` + deviceId, { 
+                method: 'DELETE',
+                headers: authHeaders
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.pesan);
+                if(data.status === 'sukses') location.reload();
+            });
+        }
+    }
+
+    document.getElementById('formTelegramId').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const chatIdValue = document.getElementById('inputTelegramChatId').value.trim();
+
+        fetch(`${API_BASE_URL}/api/user/telegram`, {
+            method: 'POST',
+            headers: authHeaders,
+            body: JSON.stringify({ telegram_chat_id: chatIdValue })
+        })
+        .then(res => res.json())
+        .then(data => {
+            alert(data.pesan);
+            if(data.status === 'sukses') {
+                localStorage.setItem('ras_chat_id', chatIdValue);
+                location.reload();
+            }
+        })
+        .catch(err => alert("Gagal menghubungi server database."));
+    });
+
+    const chartOptions = { responsive: true, animation: false, scales: { x: { display: false } } };
+    const ctxSuhu = document.getElementById('chart-suhu').getContext('2d');
+    const chartSuhu = new Chart(ctxSuhu, { type: 'line', data: { labels: [], datasets: [] }, options: chartOptions });
+    const ctxPH = document.getElementById('chart-ph').getContext('2d');
+    const chartPH = new Chart(ctxPH, { type: 'line', data: { labels: [], datasets: [] }, options: chartOptions });
+    const ctxTDS = document.getElementById('chart-tds').getContext('2d');
+    const chartTDS = new Chart(ctxTDS, { type: 'line', data: { labels: [], datasets: [] }, options: chartOptions });
+    const ctxDO = document.getElementById('chart-do').getContext('2d');
+    const chartDO = new Chart(ctxDO, { type: 'line', data: { labels: [], datasets: [] }, options: chartOptions });
+
+    async function updateDashboard() {
+        if (!KOLAM_ID) return; 
+        try {
+            let apiUrl = `${API_BASE_URL}/api/data-sensor/${KOLAM_ID}?range=${TIME_RANGE}`;
+            if (TIME_RANGE === 'custom') {
+                let startStr = localStorage.getItem('customStart');
+                let stopStr = localStorage.getItem('customStop');
+                if (startStr && stopStr) {
+                    apiUrl += `&start=${startStr}&stop=${stopStr}`;
+                } else {
+                    apiUrl = `${API_BASE_URL}/api/data-sensor/${KOLAM_ID}?range=1h`; 
+                }
+            }
+
+            const [response, resAturan] = await Promise.all([
+                fetch(apiUrl, { headers: authHeaders }),
+                fetch(`${API_BASE_URL}/api/aturan/${KOLAM_ID}`, { headers: authHeaders })
+            ]);
+            
+            const data = await response.json();
+            const dataAturan = await resAturan.json();
+            
+            if (data.length === 0) {
+                document.getElementById('wadah-kontrol-relay').innerHTML = '<p class="small text-muted mt-3">Tidak ada data alat di kolam ini.</p>';
+                return;
+            }
+
+            let relayNamesMap = {};
+            if (dataAturan && dataAturan.devices) {
+                dataAturan.devices.forEach(dev => {
+                    let caps = {};
+                    if (dev.capabilities) {
+                        try { caps = (typeof dev.capabilities === 'string') ? JSON.parse(dev.capabilities) : dev.capabilities; } catch(e){}
+                    }
+                    relayNamesMap[dev.id_device] = caps.relay_names || {};
+                });
+            }
+
+            let fieldPernahAktif = new Set();
+            let nilaiTerakhir = {}; 
+            let waktuTerakhir = {}; 
+            
+            let timestampSet = new Set();
+            let labelMap = {}; 
+            
+            let dataSuhu = {}, dataPH = {}, dataTDS = {}, dataDO = {};
+
+            data.forEach(item => {
+                let devId = item.device_id;
+                let timeObj = new Date(item.waktu);
+                let timeMs = timeObj.getTime();
+                
+                let timeLabel = (TIME_RANGE === '24h' || TIME_RANGE === '7d' || TIME_RANGE === 'custom')
+                                ? timeObj.toLocaleString('id-ID', {day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit'})
+                                : timeObj.toLocaleTimeString('id-ID');
+                
+                timestampSet.add(timeMs);
+                labelMap[timeMs] = timeLabel;
+                
+                fieldPernahAktif.add(item.field); 
+                
+                if(!waktuTerakhir[devId]) waktuTerakhir[devId] = {};
+                if(!nilaiTerakhir[devId]) nilaiTerakhir[devId] = {};
+
+                if (!waktuTerakhir[devId][item.field] || timeMs >= waktuTerakhir[devId][item.field]) {
+                    waktuTerakhir[devId][item.field] = timeMs;
+                    nilaiTerakhir[devId][item.field] = item.nilai;
+                }
+
+                if (item.field === 'suhu') { if(!dataSuhu[devId]) dataSuhu[devId] = {}; dataSuhu[devId][timeMs] = item.nilai; }
+                if (item.field === 'ph') { if(!dataPH[devId]) dataPH[devId] = {}; dataPH[devId][timeMs] = item.nilai; }
+                if (item.field === 'tds_ppm') { if(!dataTDS[devId]) dataTDS[devId] = {}; dataTDS[devId][timeMs] = item.nilai; }
+                if (item.field === 'do_mgL') { if(!dataDO[devId]) dataDO[devId] = {}; dataDO[devId][timeMs] = item.nilai; }
+            });
+
+            let sortedTimestamps = Array.from(timestampSet).sort((a, b) => a - b);
+            let labelsArray = sortedTimestamps.map(ts => labelMap[ts]);
+
+            let maxT_Suhu=0, val_Suhu=null, maxT_PH=0, val_PH=null, maxT_TDS=0, val_TDS=null, maxT_DO=0, val_DO=null, maxT_Flt=0, val_Flt=null;
+            
+            for(let d in waktuTerakhir) {
+                if(waktuTerakhir[d]['suhu'] && waktuTerakhir[d]['suhu'] > maxT_Suhu) { maxT_Suhu = waktuTerakhir[d]['suhu']; val_Suhu = nilaiTerakhir[d]['suhu']; }
+                if(waktuTerakhir[d]['ph'] && waktuTerakhir[d]['ph'] > maxT_PH) { maxT_PH = waktuTerakhir[d]['ph']; val_PH = nilaiTerakhir[d]['ph']; }
+                if(waktuTerakhir[d]['tds_ppm'] && waktuTerakhir[d]['tds_ppm'] > maxT_TDS) { maxT_TDS = waktuTerakhir[d]['tds_ppm']; val_TDS = nilaiTerakhir[d]['tds_ppm']; }
+                if(waktuTerakhir[d]['do_mgL'] && waktuTerakhir[d]['do_mgL'] > maxT_DO) { maxT_DO = waktuTerakhir[d]['do_mgL']; val_DO = nilaiTerakhir[d]['do_mgL']; }
+                if(waktuTerakhir[d]['air_penuh'] && waktuTerakhir[d]['air_penuh'] > maxT_Flt) { maxT_Flt = waktuTerakhir[d]['air_penuh']; val_Flt = nilaiTerakhir[d]['air_penuh']; }
+            }
+
+            if (val_Suhu !== null) document.getElementById('val-suhu').innerText = val_Suhu.toFixed(1);
+            if (val_PH !== null) document.getElementById('val-ph').innerText = val_PH.toFixed(2);
+            if (val_TDS !== null) document.getElementById('val-tds').innerText = Math.round(val_TDS);
+            if (val_DO !== null) document.getElementById('val-do').innerText = val_DO.toFixed(2);
+            if (val_Flt !== null) document.getElementById('val-float').innerText = val_Flt ? "PENUH" : "KOSONG";
+
+            document.getElementById('card-suhu').style.display = fieldPernahAktif.has('suhu') ? 'block' : 'none';
+            document.getElementById('card-ph').style.display = fieldPernahAktif.has('ph') ? 'block' : 'none';
+            document.getElementById('card-tds').style.display = fieldPernahAktif.has('tds_ppm') ? 'block' : 'none';
+            document.getElementById('card-do').style.display = fieldPernahAktif.has('do_mgL') ? 'block' : 'none';
+            document.getElementById('card-float').style.display = fieldPernahAktif.has('air_penuh') ? 'block' : 'none';
+
+            let htmlRelay = "";
+            for(let devId in nilaiTerakhir) {
+                let alat = nilaiTerakhir[devId];
+                if(alat['r1_en'] || alat['r2_en'] || alat['r3_en'] || alat['r4_en']) {
+                    htmlRelay += `<div class="mb-3 p-2 border rounded bg-light">`;
+                    htmlRelay += `<h6 class="text-dark mb-2">Alat: ${devId}</h6>`;
+                    if(alat['r1_en']) {
+                        let nR1 = (relayNamesMap[devId] && relayNamesMap[devId]['r1_en']) ? relayNamesMap[devId]['r1_en'].toUpperCase() : "R1";
+                        htmlRelay += `<div class="d-flex gap-2 mb-2">
+                                        <button class="btn btn-outline-primary btn-sm flex-fill fw-bold" onclick="kontrol('${devId}', 'input1', 'ON')">NYALAKAN ${nR1}</button>
+                                        <button class="btn btn-outline-danger btn-sm flex-fill fw-bold" onclick="kontrol('${devId}', 'input1', 'OFF')">MATIKAN ${nR1}</button>
+                                      </div>`;
+                    }
+                    if(alat['r2_en']) {
+                        let nR2 = (relayNamesMap[devId] && relayNamesMap[devId]['r2_en']) ? relayNamesMap[devId]['r2_en'].toUpperCase() : "R2";
+                        htmlRelay += `<div class="d-flex gap-2 mb-2">
+                                        <button class="btn btn-outline-primary btn-sm flex-fill fw-bold" onclick="kontrol('${devId}', 'input2', 'ON')">NYALAKAN ${nR2}</button>
+                                        <button class="btn btn-outline-danger btn-sm flex-fill fw-bold" onclick="kontrol('${devId}', 'input2', 'OFF')">MATIKAN ${nR2}</button>
+                                      </div>`;
+                    }
+                    if(alat['r3_en']) {
+                        let nR3 = (relayNamesMap[devId] && relayNamesMap[devId]['r3_en']) ? relayNamesMap[devId]['r3_en'].toUpperCase() : "R3";
+                        htmlRelay += `<div class="d-flex gap-2 mb-2">
+                                        <button class="btn btn-outline-primary btn-sm flex-fill fw-bold" onclick="kontrol('${devId}', 'input3', 'ON')">NYALAKAN ${nR3}</button>
+                                        <button class="btn btn-outline-danger btn-sm flex-fill fw-bold" onclick="kontrol('${devId}', 'input3', 'OFF')">MATIKAN ${nR3}</button>
+                                      </div>`;
+                    }
+                    if(alat['r4_en']) {
+                        let nR4 = (relayNamesMap[devId] && relayNamesMap[devId]['r4_en']) ? relayNamesMap[devId]['r4_en'].toUpperCase() : "R4";
+                        htmlRelay += `<div class="d-flex gap-2 mb-2">
+                                        <button class="btn btn-outline-primary btn-sm flex-fill fw-bold" onclick="kontrol('${devId}', 'input4', 'ON')">NYALAKAN ${nR4}</button>
+                                        <button class="btn btn-outline-danger btn-sm flex-fill fw-bold" onclick="kontrol('${devId}', 'input4', 'OFF')">MATIKAN ${nR4}</button>
+                                      </div>`;
+                    }
+                    htmlRelay += `</div>`;
+                }
+            }
+            if(htmlRelay === "") htmlRelay = '<p class="small text-muted mt-3">Tidak ada relay aktif di kolam ini.</p>';
+            document.getElementById('wadah-kontrol-relay').innerHTML = htmlRelay;
+
+            document.getElementById('chart-container-suhu').style.display = fieldPernahAktif.has('suhu') ? 'block' : 'none';
+            document.getElementById('chart-container-ph').style.display = fieldPernahAktif.has('ph') ? 'block' : 'none';
+            document.getElementById('chart-container-tds').style.display = fieldPernahAktif.has('tds_ppm') ? 'block' : 'none';
+            document.getElementById('chart-container-do').style.display = fieldPernahAktif.has('do_mgL') ? 'block' : 'none';
+
+            function rakitDataset(objData, labelNama) {
+                let dsets = []; let cIdx = 0;
+                for(let devId in objData) {
+                    dsets.push({
+                        label: `${labelNama} [${devId}]`,
+                        data: sortedTimestamps.map(ts => objData[devId][ts] !== undefined ? objData[devId][ts] : null),
+                        borderColor: grafikColors[cIdx % grafikColors.length],
+                        tension: 0.3, fill: false, spanGaps: true
+                    });
+                    cIdx++;
+                }
+                return dsets;
+            }
+
+            if (fieldPernahAktif.has('suhu')) {
+                chartSuhu.data.labels = labelsArray;
+                chartSuhu.data.datasets = rakitDataset(dataSuhu, "Suhu");
+                chartSuhu.update();
+            }
+            if (fieldPernahAktif.has('ph')) {
+                chartPH.data.labels = labelsArray;
+                chartPH.data.datasets = rakitDataset(dataPH, "pH");
+                chartPH.update();
+            }
+            if (fieldPernahAktif.has('tds_ppm')) {
+                chartTDS.data.labels = labelsArray;
+                chartTDS.data.datasets = rakitDataset(dataTDS, "TDS");
+                chartTDS.update();
+            }
+            if (fieldPernahAktif.has('do_mgL')) {
+                chartDO.data.labels = labelsArray;
+                chartDO.data.datasets = rakitDataset(dataDO, "DO");
+                chartDO.update();
+            }
+
+        } catch (error) {
+            console.error("Gagal menarik data:", error);
+        }
+    }
+
+    function jalankanSiklusDashboard() {
+        if(refreshIntervalId) clearInterval(refreshIntervalId); 
+        updateDashboard(); 
+        if (TIME_RANGE !== 'custom') {
+            refreshIntervalId = setInterval(updateDashboard, 5000);
+        }
+    }
+
+    // Eksekusi pertama di-handle oleh DOMContentLoaded
+</script>
+
+</body>
+</html>
