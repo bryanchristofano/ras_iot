@@ -26,7 +26,7 @@ MYSQL_PASS = "ras123"
 MYSQL_DB   = "db_ras"
 
 INFLUX_URL    = "http://localhost:8086"
-INFLUX_TOKEN  = "CIoSGGTn2bRlr4lnoWkPpp7_1Knt9BlJVzIk82B7QTyL0P9Yec3bY_x3bSH3yaJfme_xxmXMvRGVwNy6je_DPw=="
+INFLUX_TOKEN  = "-"
 INFLUX_ORG    = "Organisasi_RAS"
 INFLUX_BUCKET = "sensor_data"
 
@@ -34,7 +34,7 @@ MQTT_BROKER = "broker.hivemq.com"
 MQTT_PORT   = 1883
 MQTT_TOPIC  = "ras/+/sensor/data" 
 
-TELEGRAM_BOT_TOKEN = "8829971865:AAGY4BjOaJ1I4NWuK_ApBcoSumXWkxu2QTc"
+TELEGRAM_BOT_TOKEN = "-"
 
 influx_client = InfluxDBClient(url=INFLUX_URL, token=INFLUX_TOKEN, org=INFLUX_ORG)
 write_api = influx_client.write_api(write_options=SYNCHRONOUS)
